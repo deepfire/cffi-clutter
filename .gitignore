@@ -21,3 +21,5 @@
 *.obj
 *.ilk
 *.pdb
+
+clutter-raw*.h

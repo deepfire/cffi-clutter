@@ -7,15 +7,13 @@
   :maintainer " <ramarren@cignet.higersbergernet>"
   :author " <ramarren@cignet.higersbergernet>"
   :licence "BSD-style"
-  :depends-on (:cffi :alexandria)
+  :depends-on (:cffi :cl-autowrap :alexandria)
   :components ((:file "package")
-               (cffi-grovel:grovel-file "grovel" :depends-on ("package"))
-               (:file "bindings" :depends-on ("package" "grovel"))
-               (:file "inline-wrappers" :depends-on ("package" "grovel" "bindings"))
+               (:file "clutter-raw" :depends-on ("package"))
                (:file "pool" :depends-on ("package" "inline-wrappers"))
-               (:file "g-values" :depends-on ("package" "grovel" "inline-wrappers"))
-               (:file "wrappers" :depends-on ("package" "grovel" "bindings" "callbacks" "inline-wrappers" "pool"))
+               (:file "g-values" :depends-on ("package" "inline-wrappers"))
+               (:file "wrappers" :depends-on ("package" "callbacks" "inline-wrappers" "pool"))
                (:file "resource" :depends-on ("package"))
-               (:file "callbacks" :depends-on ("package" "grovel" "inline-wrappers" "resource"))
-               (:file "gobject-subclass" :depends-on ("package" "grovel" "resource" "wrappers" "inline-wrappers"))
-               (:file "animations" :depends-on ("package" "grovel" "wrappers" "callbacks" "g-values"))))
+               (:file "callbacks" :depends-on ("package" "inline-wrappers" "resource"))
+               (:file "gobject-subclass" :depends-on ("package" "resource" "wrappers" "inline-wrappers"))
+               (:file "animations" :depends-on ("package" "wrappers" "callbacks" "g-values"))))
