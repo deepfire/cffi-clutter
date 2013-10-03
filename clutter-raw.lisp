@@ -33,3 +33,6 @@
                                    "/usr/include/json-glib-1.0")
                     :exclude-constants (".*")
                     :constant-accessor const)
+
+(cl:in-package :cffi-clutter)
+(use-package :clutter-raw)

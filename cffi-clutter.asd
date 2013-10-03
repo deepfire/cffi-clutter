@@ -10,4 +10,6 @@
   :depends-on (:cffi :cl-autowrap :alexandria)
   :components ((:file "package")
                (:file "clutter-raw" :depends-on ("package"))
-               (:file "pool" :depends-on ("package" "clutter-raw"))))
+               (:file "callbacks"   :depends-on ("package" "clutter-raw"))
+               (:file "wrappers"    :depends-on ("package" "clutter-raw"))
+               (:file "pool"        :depends-on ("package" "clutter-raw"))))
