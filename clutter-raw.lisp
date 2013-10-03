@@ -17,7 +17,9 @@
                                    "i686-apple-darwin9"
                                    "x86_64-apple-darwin9")
                     :exclude-sources ("/usr/include/(?:getopt|pthread|sched|stdio|time|unistd|xlocale).h"
-                                      ;; "/usr/include/(?!stdint.h|/home/deepfire/src/cffi-clutter/bits/types.h|sys/types.h|glib-2.0|clutter-1.0|cogl).*"
+                                      ;; Adding this kills gdk-pixbuf..
+                                      ;; "/usr/include/(?!stdint.h|bits/types.h|sys/types.h|glib-2.0|clutter-1.0|cogl).*"
+                                      "/usr/include/clutter-1.0/clutter/deprecated"
                                       "/usr/include/glib-2.0/glib/deprecated")
                     :exclude-definitions ("^signal$")
                     :sysincludes '("/usr/include/"
