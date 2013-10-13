@@ -1,5 +1,9 @@
 (defpackage :cffi-clutter
-  (:use :cl :cffi :alexandria)
+  (:use :cl :cffi :alexandria :autowrap :plus-c)
+  (:shadowing-import-from :autowrap
+                          #:foreign-type-size #:foreign-pointer
+                          #:defcallback #:callback
+                          #:define-foreign-type)
   (:export
    #:g-signal-connect
    ;;
@@ -36,4 +40,8 @@
    #:get-perspective
    #:get-stage-perspective
    #:set-stage-perspective
+   ;; resource.lisp
+   #:resource
+   #:register-resource
+   #:unregister-resource
    ))

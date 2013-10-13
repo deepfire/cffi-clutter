@@ -34,6 +34,7 @@
                                    "/usr/include/gdk-pixbuf-2.0"
                                    "/usr/include/json-glib-1.0")
                     :exclude-constants (".*")
+                    :no-accessors t
                     :constant-accessor const)
 
 (cl:in-package :cffi-clutter)

@@ -4,21 +4,23 @@
 ;; I don't think there is much point in wrapping pointers with objects at this level
 
 (defun event-get-coords (event)
-  (with-foreign-objects ((x :float) (y :float))
-    (clutter-event-get-coords event x y)
-    (list (mem-ref x :float) (mem-ref y :float))))
+  (c-dxlet ((x :float)
+            (y :float))
+    (clutter-event-get-coords event (x &) (y &))
+    (list x y)))
 
-(defun set-color (color r g b &optional (a (foreign-slot-value color 'clutter-color 'alpha)))
-  (with-foreign-slots ((red green blue alpha) color color)
-    (setf red r
-          green g
-          blue b
-          alpha a))
+(defun set-color (color r g b &optional (a (c-ref color clutter-color :alpha)))
+  (setf (c-ref color clutter-color :red)   r
+        (c-ref color clutter-color :green) g
+        (c-ref color clutter-color :blue)  b
+        (c-ref color clutter-color :alpha) a)
   color)
 
 (defun get-color (color)
-  (with-foreign-slots ((red green blue alpha) color clutter-color)
-    (list red green blue alpha)))
+  (list (c-ref color clutter-color :red)
+        (c-ref color clutter-color :green)
+        (c-ref color clutter-color :blue)
+        (c-ref color clutter-color :alpha)))
 
 (defmacro with-color ((var red green blue &optional (alpha 255)) &body body)
   `(let ((,var (clutter-color-new ,red ,green ,blue ,alpha)))
@@ -36,11 +38,9 @@
 
 (defvar *clutter-initialization-addons* nil)
 
-(defun init-clutter (&key (clutter-argument-list nil) (threading t))
+(defun init-clutter (&key (clutter-argument-list nil))
   (unless *clutter-initialized*
     (setf *clutter-initialized* t)
-    (when threading
-      (clutter-threads-init))
     (let ((result
            (if clutter-argument-list
                (let ((argc (length clutter-argument-list))
@@ -61,14 +61,55 @@
         (funcall symbol))
       (values result))))
 
+;;;
+;;; Idle events & support callback machinery
+;;;
+;; wrap callbacks in dispatcher function to enable use of lisp functions
+;; signals are disconnected when objects are freed
+;; note that signals connected to stage just pile up if not disconnected, since the default stage
+;; is created once on init-clutter
+
+(defun register-lisp-callback (lisp-callback c-dispatch)
+  (let ((rid (foreign-alloc :uint64)))
+    (register-resource (cons lisp-callback c-dispatch) rid)
+    rid))
+
+(declaim (inline call-lisp-callback))
+(defun call-lisp-callback-by-rid (user-data &rest arguments)
+  (destructuring-bind (lisp-callback . c-dispatch) (resource user-data)
+    (declare (ignore c-dispatch))
+    (apply lisp-callback arguments)))
+
+(defun unregister-lisp-callback-by-rid (rid-ptr)
+  (unregister-resource rid-ptr)
+  (foreign-free rid-ptr)
+  (values))
+
+(defcallback source-callback gboolean ((data :pointer))
+  (if (call-lisp-callback-by-rid data)
+      (const "TRUE")
+      (const "FALSE")))
+
+(defcallback destroy-notify-callback :void ((data :pointer))
+  (unregister-lisp-callback-by-rid data))
+
+(defun add-idle (idle-function &key (priority (const "G_PRIORITY_DEFAULT_IDLE")))
+  (let ((rid (register-lisp-callback idle-function (callback 'source-callback))))
+    (clutter-threads-add-idle-full priority
+                                   (callback 'source-callback)
+                                   rid
+                                   (callback 'destroy-notify-callback))))
+
 (defun main-with-cleanup (stage)
   "Execute main loop, and when it ends remove everything from stage, disconnect all stage lisp signals, cleanup current pool and hide the stage."
-  (clutter-actor-show stage)
   (clutter-main)
-  (add-idle (compose (constantly nil)
-                     #'clutter-main-quit))
-  (clutter-group-remove-all stage)
+  (add-idle (lambda ()
+              (clutter-main-quit)
+              nil))
+  (clutter-actor-remove-all-children stage)
+  #+nil
   (disconnect-lisp-signals stage)
+  #+nil
   (cleanup-pool *current-pool*)
   (clutter-actor-hide stage)
   (clutter-main))
@@ -86,18 +127,20 @@
       (foreign-enum-value 'clutter-animation-mode mode)
       mode))
 
+#+nil
 (defun alpha-set-mode (alpha mode)
   (clutter-alpha-set-mode alpha (clutter-animation-mode mode)))
 
+#+nil
 (defun make-behaviour-path-with-knots (alpha &rest knots-xy)
   (assert (zerop (mod (length knots-xy) 2)))
   (let ((n (/ (length knots-xy) 2)))
-    (let ((knots (foreign-alloc 'clutter-knot :count n)))
+    (c-let ((knots clutter-knot :count n))
       (loop for (x y . nil) on knots-xy by #'cddr
-            for i from 0
-            do (let ((knot (mem-aref knots 'clutter-knot i)))
-                 (setf (foreign-slot-value knot 'clutter-knot 'x) x
-                       (foreign-slot-value knot 'clutter-knot 'y) y)))
+         for i from 0
+         do (let ((knot (c-ref knots clutter-knot i)))
+              (setf (c-ref (knots &) (autowrap:ptr clutter-knot) i :x) x
+                    (c-ref (knots &) (autowrap:ptr clutter-knot) i :y) y)))
       (clutter-behaviour-path-new-with-knots alpha knots n))))
 
 (defun actor-get-preferred-size (actor)
@@ -139,46 +182,47 @@
 
 (defun stage-get-actor-at-position (stage pick-mode x y)
   (let ((result (clutter-stage-get-actor-at-pos stage pick-mode x y)))
-    (if (null-pointer-p result)
+    (if (null-pointer-p (ptr result))
         nil
         result)))
 
-(defun score-append (score parent timeline)
-  (clutter-score-append score (if parent parent (null-pointer)) timeline))
-
+#+nil
 (defun actor-get-geometry (actor)
-  (with-foreign-object (geometry 'clutter-geometry)
-    (clutter-actor-get-geometry actor clutter-geometry)
-    (list (foreign-slot-value geometry 'clutter-geometry 'x)
-          (foreign-slot-value geometry 'clutter-geometry 'y)
-          (foreign-slot-value geometry 'clutter-geometry 'width)
-          (foreign-slot-value geometry 'clutter-geometry 'height))))
+  (c-dxlet ((geometry clutter-geometry))
+    (clutter-actor-get-geometry actor (geometry &))
+    (list (c-ref geometry clutter-geometry :x)
+          (c-ref geometry clutter-geometry :y)
+          (c-ref geometry clutter-geometry :width)
+          (c-ref geometry clutter-geometry :height))))
 
 (defmacro with-perspective ((var fovy aspect z-near z-far) &body body)
-  `(with-foreign-object (,var 'clutter-perspective)
-     (setf (foreign-slot-value ,var 'clutter-perspective 'fovy) ,fovy
-           (foreign-slot-value ,var 'clutter-perspective 'aspect) ,aspect
-           (foreign-slot-value ,var 'clutter-perspective 'z-near) ,z-near
-           (foreign-slot-value ,var 'clutter-perspective 'z-far) ,z-far)
-     ,@body))
+  (with-gensyms (tmp)
+    `(c-dxlet ((,tmp clutter-perspective))
+       (setf (c-ref ,tmp clutter-perspective :fovy) ,fovy
+             (c-ref ,tmp clutter-perspective :aspect) ,aspect
+             (c-ref ,tmp clutter-perspective :z-near) ,z-near
+             (c-ref ,tmp clutter-perspective :z-far) ,z-far)
+       (symbol-macrolet ((,var (,tmp &)))
+         ,@body))))
 
 (defun set-perspective (perspective f a near far)
-  (with-foreign-slots ((fovy aspect z-near z-far) perspective clutter-perspective)
-    (setf fovy f
-          aspect a
-          z-near near
-          z-far far))
+  (setf (c-ref perspective clutter-perspective :fovy) f
+        (c-ref perspective clutter-perspective :aspect) a
+        (c-ref perspective clutter-perspective :z-near) near
+        (c-ref perspective clutter-perspective :z-far) far)
   perspective)
 
 (defun get-perspective (perspective)
-  (with-foreign-slots ((fovy aspect z-near z-far) perspective clutter-perspective)
-    (list fovy aspect z-near z-far)))
+  (list (c-ref perspective clutter-perspective :fovy)
+        (c-ref perspective clutter-perspective :aspect)
+        (c-ref perspective clutter-perspective :z-near)
+        (c-ref perspective clutter-perspective :z-far)))
 
 (defun get-stage-perspective (stage)
   "Wrapper around stage-get-perspective"
-  (with-foreign-object (perspective 'clutter-perspective)
-    (stage-get-perspective stage perspective)
-    (get-perspective perspective)))
+  (c-dxlet ((perspective clutter-perspective))
+    (clutter-stage-get-perspective stage (perspective &))
+    (get-perspective (perspective &))))
 
 (defun set-stage-perspective (stage fovy aspect z-near z-far)
   "Wrapper around stage-set-perspective"
