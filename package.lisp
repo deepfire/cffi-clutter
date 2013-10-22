@@ -44,4 +44,15 @@
    #:resource
    #:register-resource
    #:unregister-resource
+   ;; g-value.lisp
+   #:g-type-lookup
+   #:g-type-known
+   #:g-type-to-ffi-type
+   #:define-g-type
+   #:g-value
+   #:zero-g-value
+   #:initialize-g-value
+   #:make-g-value
+   #:free-g-value
+   #:with-g-value
    ))

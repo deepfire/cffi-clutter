@@ -8,9 +8,11 @@
   :author " <ramarren@cignet.higersbergernet>"
   :licence "BSD-style"
   :depends-on (:cffi :cl-autowrap :alexandria :cl-plus-c)
-  :components ((:file "package")
-               (:file "clutter-raw" :depends-on ("package"))
-               (:file "callbacks"   :depends-on ("package" "clutter-raw"))
-               (:file "resource"    :depends-on ("package" "clutter-raw"))
-               (:file "wrappers"    :depends-on ("package" "clutter-raw" "resource"))
-               (:file "pool"        :depends-on ("package" "clutter-raw"))))
+  :components ((:file "clutter-raw")
+               (:file "package"     :depends-on ("clutter-raw"))
+               (:file "callbacks"   :depends-on ("package"))
+               (:file "resource"    :depends-on ("package"))
+               (:file "wrappers"    :depends-on ("package" "resource"))
+               (:file "g-type"      :depends-on ("package"))
+               (:file "g-value"     :depends-on ("package" "g-type"))
+               (:file "pool"        :depends-on ("package"))))
