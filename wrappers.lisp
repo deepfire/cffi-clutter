@@ -106,11 +106,13 @@
   (add-idle (lambda ()
               (clutter-main-quit)
               nil))
+  #+nil
   (clutter-actor-remove-all-children stage)
   #+nil
   (disconnect-lisp-signals stage)
   #+nil
   (cleanup-pool *current-pool*)
+  #+nil
   (clutter-actor-hide stage)
   (clutter-main))
 
