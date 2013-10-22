@@ -1,5 +1,5 @@
 (defpackage :cffi-clutter
-  (:use :cl :cffi :alexandria :autowrap :plus-c)
+  (:use :cl :cffi :alexandria :autowrap :plus-c :clutter-raw)
   (:shadowing-import-from :autowrap
                           #:foreign-type-size #:foreign-pointer
                           #:defcallback #:callback

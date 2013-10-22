@@ -36,6 +36,3 @@
                     :exclude-constants (".*")
                     :no-accessors t
                     :constant-accessor const)
-
-(cl:in-package :cffi-clutter)
-(use-package :clutter-raw)
