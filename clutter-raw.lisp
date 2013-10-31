@@ -1,4 +1,5 @@
-(defpackage clutter-raw)
+(defpackage clutter-raw
+  (:use))
 (in-package :clutter-raw)
 
 (cl:eval-when (:compile-toplevel :load-toplevel :execute)
