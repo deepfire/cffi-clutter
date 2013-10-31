@@ -44,10 +44,9 @@
 
 ;; (or string symbol) -> integer
 (defun g-type-lookup (name)
-  (with-foreign-string (str (etypecase name
-                              (string name)
-                              (symbol (ffi-type-to-g-name name))))
-    (g-type-from-name str)))
+  (g-type-from-name (etypecase name
+                      (string name)
+                      (symbol (ffi-type-to-g-name name)))))
 
 ;; integer -> boolean
 (defun g-type-known (g-type)
@@ -108,13 +107,11 @@
            ;; XXX: protect from simultaneous init by different threads
            (unless ,type-id
              (setf ,type-id (g-type-register-static-simple
-                             (with-foreign-string (,parent-name-fstr ,c-parent-name)
-                               (g-type-from-name ,parent-name-fstr))
-                             (with-foreign-string (,name-fstr ,c-name)
-                               (g-intern-string ,name-fstr))
                              (foreign-type-size ',type-class-name)
+                             (g-type-from-name ,c-parent-name)
+                             (g-intern-string ,c-name)
                              (callback ',class-intern-init-cb)
-                             (foreign-type-size ',lisp-name)
+                             (foreign-type-size '(:struct (,type-name)))
                              (callback ',init-cb)
                              ,flags))
              ,@body)
