@@ -4,8 +4,8 @@
 ;; I don't think there is much point in wrapping pointers with objects at this level
 
 (defun event-get-coords (event)
-  (c-dxlet ((x :float)
-            (y :float))
+  (c-with ((x :float)
+           (y :float))
     (clutter-event-get-coords event (x &) (y &))
     (list x y)))
 
@@ -188,7 +188,7 @@
 
 #+nil
 (defun actor-get-geometry (actor)
-  (c-dxlet ((geometry clutter-geometry))
+  (c-with ((geometry clutter-geometry))
     (clutter-actor-get-geometry actor (geometry &))
     (list (c-ref geometry clutter-geometry :x)
           (c-ref geometry clutter-geometry :y)
@@ -197,7 +197,7 @@
 
 (defmacro with-perspective ((var fovy aspect z-near z-far) &body body)
   (with-gensyms (tmp)
-    `(c-dxlet ((,tmp clutter-perspective))
+    `(c-with ((,tmp clutter-perspective))
        (setf (c-ref ,tmp clutter-perspective :fovy) ,fovy
              (c-ref ,tmp clutter-perspective :aspect) ,aspect
              (c-ref ,tmp clutter-perspective :z-near) ,z-near
@@ -220,7 +220,7 @@
 
 (defun get-stage-perspective (stage)
   "Wrapper around stage-get-perspective"
-  (c-dxlet ((perspective clutter-perspective))
+  (c-with ((perspective clutter-perspective))
     (clutter-stage-get-perspective stage (perspective &))
     (get-perspective (perspective &))))
 
