@@ -10,24 +10,31 @@
 (declaim (inline get-resource-meta-by-number get-resource-meta
                  resource resource-by-number (setf resource) (setf resource-by-number)))
 
+;; integer -> (T integer pointer)
 (defun get-resource-meta-by-number (n)
   (svref *resources* n))
 
+;; integer -> T
 (defun resource-by-number (n)
   (car (get-resource-meta-by-number n)))
 
+;; pointer -> (T integer pointer)
 (defun get-resource-meta (foreign-pointer)
   (get-resource-meta-by-number (mem-ref foreign-pointer :uint64)))
 
+;; pointer -> T
 (defun resource (foreign-pointer)
   (resource-by-number (mem-ref foreign-pointer :uint64)))
 
+;; (T integer pointer) -> pointer -> IO
 (defun (setf resource) (new-value foreign-pointer)
   (setf (car (get-resource-meta foreign-pointer)) new-value))
 
+;; T -> pointer -> IO
 (defun (setf resource-by-number) (new-value n)
   (setf (car (get-resource-meta-by-number n)) new-value))
 
+;; IO
 (defun grow-resource-array ()
   (let ((new-array (make-array (* 2 (length *resources*)) :initial-element nil))
         (old-array *resources*))
@@ -35,6 +42,7 @@
           do (setf (svref new-array i)
                    (svref old-array i)))))
 
+;; IO
 (defun shrink-resource-array ()
   (let ((old-array *resources*))
     (assert (> (/ (length old-array) 2) *resource-counter*))
@@ -43,6 +51,7 @@
             do (setf (svref new-array i)
                      (svref old-array i))))))
 
+;; T -> pointer -> (values integer IO)
 (defun register-resource (resource foreign-pointer)
   (let ((n *resource-counter*))
     (when (= (length *resources*) n)
@@ -52,6 +61,7 @@
     (incf *resource-counter*)
     (values n)))
 
+;; integer -> integer -> IO
 (defun move-resource (from to)
   (assert (null (svref *resources* to)))
   (destructuring-bind (resource n foreign-pointer) (svref *resources* from)
@@ -60,6 +70,7 @@
           (mem-ref foreign-pointer :uint64) to
           (svref *resources* from) nil)))
 
+;; pointer -> IO
 (defun unregister-resource (foreign-pointer)
   (destructuring-bind (resource i f-pointer) (get-resource-meta foreign-pointer)
     (declare (ignore resource f-pointer))
